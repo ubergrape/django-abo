@@ -1,0 +1,239 @@
+{% load i18n %}
+{% comment %}
+Paymill requires a custom form with some JS.
+{% endcomment %}
+
+{% comment %}
+This is the form that will hold the actual token that will be sent to the server
+{% endcomment %}
+
+<noscript>
+    You have to enable JavaScript to be able to pay
+</noscript>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+
+<div id="javascript-only" class="payment" style="display:none">
+
+    <form id="payment-form-token" action="" method="POST" >
+        {% csrf_token %}
+        {{ form.as_p }}
+    </form>
+
+    <div id="paymenttype">
+        <button id="btn-paymenttype-cc" class="switch_button switch_button_active" value="cc">{% trans "Credit Card" %}</button>
+        <button id="btn-paymenttype-dd" class="switch_button" value="dd">{% trans "Direct Debit" %}</button>
+    </div>
+
+    <form id="payment-form" action="#" method="POST">
+        <div id="payment-form-cc">
+            <p>
+                <label for="card-number" class="card-number-label">{% trans "Card number" %}</label>
+                <input id ="card-number" class="card-number" type="text" maxlength="19">
+                <span class="helptext">{% trans "The digits on front of your credit card" %}</span>
+            </p>
+
+            <p>
+                <label for="card-expiry" class="card-expiry-label">{% trans "Expiry date" %}</label>
+                <input id="card-expiry" class="card-expiry" type="text" placeholder="MM/YY" maxlength="7">
+                <span class="helptext">{% trans "The date your credit card expires. Find this on the front of your credit card" %}</span>
+            </p>
+
+            <p>
+                <label for="card-holdername" class="card-holdername-label">{% trans "Name" %}</label>
+                <input id="card-holdername" class="card-holdername" type="text">
+                <span class="helptext">{% trans "The name as it appears on your credit card" %}</span>
+            </p>
+
+            <p>
+                <label for="card-cvc" class="field-right">{% trans "CVC" %}</label>
+                <input id="card-cvc" class="card-cvc" type="text" maxlength="4">
+                <span class="helptext">{% trans "Three digits on the back of your card for security" %}</span>
+            </p>
+
+            <br><span class="helptext">{% trans "Click 'pay' to charge your card now. Your card will be automatically charged every month. You can cancel anytime." %}</span>
+        </div>
+
+        <div id="payment-form-dd" style="display: none;">
+            <!--<span class="helptext iban">{% trans "Please enter your account number and bank code.<br><a href='#' class='switch_iban'>Switch to IBAN/BIC form</a>" %}</span>-->
+            <p>
+                <label for="dd-account" class="dd-account-label">{% trans "Account number" %}</label>
+                <input id="dd-account" class="dd-account" type="text">
+            </p>
+
+            <p>
+                <label for="dd-bankcode" class="dd-bankcode-label">{% trans "Bank code" %}</label>
+                <input id="dd-bankcode" class="dd-bankcode" type="text">
+            </p>
+
+            <p>
+                <label for="dd-holdername" class="dd-holdername-label field-full">{% trans "Account holder" %}</label>
+                <input id="dd-holdername" class="dd-holdername field-full" type="text">
+            </p>
+
+            <br><span class="helptext">{% trans "Click 'pay' to charge your account now. The money transfer can take 1-2 days but you can use the product immediatly. Your account will be automatically charged every month. You can cancel anytime." %}</span>
+        </div>
+
+        <div id="payment_errors" style="display:none"></div>
+
+        <button id="submit-button" type="submit">{% trans "Pay" %}</button>
+    </form>
+</div>
+
+<script type="text/javascript">
+    // Show Payment form only when javascript is activated
+    var js_only_div = document.getElementById('javascript-only');
+    js_only_div.style.display = 'block';
+</script>
+<script type="text/javascript" src="https://bridge.paymill.com/"></script>
+<script type="text/javascript">
+    var PAYMILL_PUBLIC_KEY = '{{ PAYMILL_PUBLIC_KEY }}';
+    var VALIDATE_CVC = true;
+</script>
+<script type="text/javascript">
+    // $.noConflict();
+
+    var PaymillResponseHandler = function(error, result) {
+        if(error) {
+            console.log(error);
+            display_error(error.apierror);
+        } else {
+            var token_form = document.getElementById('payment-form-token');
+            token_form.token.value = result.token;
+            token_form.submit();
+        }
+    }
+
+    var gettext = function(text) {
+        // TODO translation
+        return text
+    }
+
+    var display_error = function(text) {
+        $("#payment_errors").text(text);
+        $("#payment_errors").css("display","inline-block");
+        $("#submit-button").removeAttr("disabled");
+    }
+
+    var create_token = function(e) {
+        e.preventDefault();
+        // This function will handle the token generation
+
+        // Deactivate submit button to avoid further clicks
+        document.getElementById('submit-button').disabled = 'disabled';
+
+        paymenttype = $('.switch_button_active').length ? $('.switch_button_active').val() : 'cc';
+        console.log(paymenttype);
+
+        switch (paymenttype) {
+            case "cc":
+                if (false === paymill.validateHolder($('.card-holdername').val())) {
+                    display_error(gettext('Please enter the card holder name.'));
+                    return false;
+                }
+                if ((false === paymill.validateCvc($('.card-cvc').val()))) {
+                    if(VALIDATE_CVC){
+                        display_error(gettext('Invalid CVC.'));
+                        return false;
+                    } else {
+                        $('.card-cvc').val("000");
+                    }
+                }
+                if (false === paymill.validateCardNumber($('.card-number').val())) {
+                    display_error(gettext('Invalid card number.'));
+                    return false;
+                }
+                var expiry = $('.card-expiry').val();
+                expiry = expiry.split("/");
+                if(expiry[1] && (expiry[1].length <= 2)){
+                    expiry[1] = '20'+expiry[1];
+                }
+                if (false === paymill.validateExpiry(expiry[0], expiry[1])) {
+                    display_error(gettext('Invalid expire date.'));
+                    return false;
+                }
+                var params = {
+                    number:         $('.card-number').val(),
+                    exp_month:      expiry[0],
+                    exp_year:       expiry[1],
+                    cvc:            $('.card-cvc').val(),
+                    cardholder:     $('.card-holdername').val()
+                };
+                break;
+
+            case "dd":
+                $('.submit-button').attr("disabled", "disabled");
+                if (false == $('.dd-holdername').val()) {
+                    display_error(gettext('Please enter the account holder name.'));
+                    return false;
+                }
+                if (false == paymill.validateAccountNumber($('.dd-account').val())) {
+                    display_error(gettext('Please enter a valid account number.'));
+                    return false;
+                }
+                if (false == paymill.validateBankCode($('.dd-bankcode').val())) {
+                    display_error(gettext('Please enter a valid bank code.'))
+                    return false;
+                }
+                var params = {
+                    number:         $('.dd-account').val(),
+                    bank:           $('.dd-bankcode').val(),
+                    accountholder:  $('.dd-holdername').val()
+                };
+                break;
+        }
+
+        paymill.createToken(params, PaymillResponseHandler);
+        return false;
+    }
+
+    var payment_form = document.getElementById('payment-form');
+
+    if (!payment_form.addEventListener) {
+        payment_form.attachEvent("onsubmit", create_token);
+    }
+    else {
+        payment_form.addEventListener("submit", create_token, false);
+    }
+
+    jQuery(document).ready(function ($) {
+        $('.card-number').keyup(function() {
+            var brand = paymill.cardType($('.card-number').val());
+            brand = brand.toLowerCase();
+            $(".card-number")[0].className = $(".card-number")[0].className.replace(/paymill-card-number-.*/g, '');
+            if (brand !== 'unknown') {
+                $('#card-number').addClass("paymill-card-number-" + brand);
+            }
+
+            if (brand !== 'maestro') {
+                VALIDATE_CVC = true;
+            } else {
+                VALIDATE_CVC = false;
+            }
+        });
+
+        $('.card-expiry').keyup(function() {
+            if ( /^\d\d$/.test( $('.card-expiry').val() ) ) {
+                text = $('.card-expiry').val();
+                $('.card-expiry').val(text += "/");
+            }
+        });
+
+        $(".switch_button").click(function (event) {
+            if ($(this).hasClass('switch_button_active')){
+                return false;
+            }
+            if ($(this).val()=='cc') {
+                $('#btn-paymenttype-dd').removeClass('switch_button_active');
+                $('#btn-paymenttype-cc').addClass('switch_button_active');
+                $('#payment-form-cc').toggle();
+                $('#payment-form-dd').toggle();
+            } else {
+                $('#btn-paymenttype-cc').removeClass('switch_button_active');
+                $('#btn-paymenttype-dd').addClass('switch_button_active');
+                $('#payment-form-cc').toggle();
+                $('#payment-form-dd').toggle();
+            }
+        });
+    });
+</script>
