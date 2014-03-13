@@ -1,2 +1,4 @@
 include LICENSE
 include README.md
+recursive-include abo/templates *
+recursive-include abo/backends/paymill/templates *
