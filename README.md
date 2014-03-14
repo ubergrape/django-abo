@@ -147,3 +147,13 @@ The same works for the `Plan` model. If you created your custom `Plan` model, le
 PLAN_MODEL = 'payment.Plan'
 ```
 
+## Inspirations
+
+*django-abo* uses ideas from:
+
+* [Django user model](https://docs.djangoproject.com/en/dev/topics/auth/customizing/#substituting-a-custom-user-model) - same techniques are used to make my Plan and Subscription model swappable
+* [django-getpaid](https://github.com/cypreess/django-getpaid) - abstraction with backends etc.
+* [django-paymill](https://github.com/ulfur/django-paymill/) - mainly event/webhook handling
+* [django-stripe-payments](https://github.com/eldarion/django-stripe-payments) - some architecture details
+
+Thanks to all contributers of theses projects
