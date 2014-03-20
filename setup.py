@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-abo',
-    version='0.1.3',
+    version='0.1.4',
     description='Recurring payment / subscription handling for Django, supporting different payment gateways',
     url='https://github.com/ubergrape/django-abo',
     author='Stefan Kröner',
