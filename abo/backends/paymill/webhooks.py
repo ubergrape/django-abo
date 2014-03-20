@@ -1,11 +1,14 @@
 import uuid
+import logging
+import pymill
+
 from urlparse import urlparse
 from django.core.urlresolvers import reverse, resolve
 from django.core.exceptions import ImproperlyConfigured
 
-import pymill
-
 from . import PaymentProcessor
+
+logger = logging.getLogger(__name__)
 
 
 WEBHOOK_EVENTS = (
@@ -69,15 +72,15 @@ class Webhook(object):
         url = '%s%s' % (
             self.host,
             reverse('abo-paymill-webhook', args=[secret, ]))
-        print 'Registering webhook: %s' % url
+        logger.info('Registering webhook: %s', url)
         paymill.new_webhook(url, WEBHOOK_EVENTS)
         self.secret = secret
 
     def init_webhook(self):
-        print 'Looking for webhook'
+        logger.info('Looking for webhook')
         secret = self.get_webhook()
         if not secret:
-            print 'Webhook not found, installing'
+            logger.warning('Webhook not found, installing')
             self.install_webhook()
 
     def get_url(self):

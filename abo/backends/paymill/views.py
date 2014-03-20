@@ -1,5 +1,6 @@
 import json
 import uuid
+import logging
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
@@ -12,13 +13,15 @@ from .forms import PaymillForm
 
 from abo.models import BackendEvent
 
+logger = logging.getLogger(__name__)
+
 
 @csrf_exempt
 @require_POST
 def webhook(request, secret):
     # TODO: compare secret
 
-    print "MESSAGE RECEIVED!"
+    logger.debug('Message received')
 
     # TODO: find out backend from request url
     backend = "abo.backends.paymill"
@@ -27,10 +30,10 @@ def webhook(request, secret):
     # TODO: find out livemode - it's not in the event json
     livemode = False
 
-    print message
+    logger.debug(message)
 
     if type(message) != dict or not message.get("event") or type(message["event"]) != dict or not message["event"].get("event_type"):
-        print "no event_type in message"
+        logger.warning("no event_type in message")
         return HttpResponseBadRequest()
 
     backend_event = BackendEvent.objects.create(

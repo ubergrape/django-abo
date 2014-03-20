@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.core.urlresolvers import reverse
@@ -10,6 +12,8 @@ from . import settings, signals
 from .utils import import_name
 from .fields import JSONField
 from .choices import *
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractPlan(models.Model):
@@ -190,4 +194,4 @@ from django.dispatch import receiver
 
 @receiver(payment_error)
 def payment_error_callback(sender, error_code, exception, **kwargs):
-    print "ERROR: %s" % (error_code)
+    logger.error(error_code)
