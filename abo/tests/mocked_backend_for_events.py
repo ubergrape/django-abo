@@ -1,7 +1,7 @@
 from abo.factories import PlanFactory
 
 
-class views(object):
+class events(object):
     class EventProcessor:
         def __init__(self, backend_event):
             self.backend_event = backend_event
